@@ -9,10 +9,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -29,6 +29,10 @@ import java.util.UUID;
 
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
+    // UUID.randomUUID()随机获取UUID
+    private final UUID MY_UUID = UUID.fromString("db764ac8-4b08-7f25-aafe-59d03c27bae3");
+    // 连接对象的名称
+    private final String NAME = "LGL";
     // 本地蓝牙适配器
     private BluetoothAdapter mBluetoothAdapter;
     // 列表
@@ -37,11 +41,35 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private List<String> bluetoothDevices = new ArrayList<String>();
     // listview的adapter
     private ArrayAdapter<String> arrayAdapter;
-    // UUID.randomUUID()随机获取UUID
-    private final UUID MY_UUID = UUID.fromString("db764ac8-4b08-7f25-aafe-59d03c27bae3");;
-    // 连接对象的名称
-    private final String NAME = "LGL";
+    // 广播接收器
+    private final BroadcastReceiver receiver = new BroadcastReceiver() {
 
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // 收到的广播类型
+            String action = intent.getAction();
+            // 发现设备的广播
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                // 从intent中获取设备
+                BluetoothDevice device = intent
+                        .getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                // 判断是否配对过
+                if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
+                    // 添加到列表
+                    bluetoothDevices.add(device.getName() + ":"
+                            + device.getAddress() + "\n");
+                    arrayAdapter.notifyDataSetChanged();
+
+                }
+                // 搜索完成
+            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED
+                    .equals(action)) {
+                // 关闭进度条
+                setProgressBarIndeterminateVisibility(true);
+                setTitle("搜索完成！");
+            }
+        }
+    };
     // 这里本身即是服务端也是客户端，需要如下类
     private BluetoothSocket clientSocket;
     private BluetoothDevice device;
@@ -49,6 +77,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private OutputStream os;
     //线程类的实例
     private AcceptThread ac;
+    // 服务端，需要监听客户端的线程类
+    private Handler handler = new Handler() {
+        public void handleMessage(android.os.Message msg) {
+            Toast.makeText(MainActivity.this, String.valueOf(msg.obj),
+                    Toast.LENGTH_SHORT).show();
+            super.handleMessage(msg);
+        }
+    };
+
     @Override
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         initView();
 
     }
+
     private void initView() {
 
         // 获取本地蓝牙适配器
@@ -77,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             startActivityForResult(intent, 1);
         }
         // 初始化listview
-        lvDevices = (ListView) findViewById(R.id.lvDevices);
+        lvDevices = findViewById(R.id.lvDevices);
         lvDevices.setOnItemClickListener(this);
         // 获取已经配对的设备
         Set<BluetoothDevice> pairedDevices = mBluetoothAdapter
@@ -113,6 +151,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         // 注册广播
         registerReceiver(receiver, filter);
     }
+
     public void btnSearch(View v) {
         // 设置进度条
         setProgressBarIndeterminateVisibility(true);
@@ -124,36 +163,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         // 开始搜索
         mBluetoothAdapter.startDiscovery();
     }
-    // 广播接收器
-    private final BroadcastReceiver receiver = new BroadcastReceiver() {
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // 收到的广播类型
-            String action = intent.getAction();
-            // 发现设备的广播
-            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                // 从intent中获取设备
-                BluetoothDevice device = intent
-                        .getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                // 判断是否配对过
-                if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
-                    // 添加到列表
-                    bluetoothDevices.add(device.getName() + ":"
-                            + device.getAddress() + "\n");
-                    arrayAdapter.notifyDataSetChanged();
-
-                }
-                // 搜索完成
-            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED
-                    .equals(action)) {
-                // 关闭进度条
-                setProgressBarIndeterminateVisibility(true);
-                setTitle("搜索完成！");
-            }
-        }
-    };
-
 
     // 客户端
     @Override
@@ -192,25 +201,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             // 如果成功获得输出流
             if (os != null) {
                 Toast.makeText(MainActivity.this, "Connection Succeed!", Toast.LENGTH_SHORT).show();
-                os.write("山不在高，有仙则名" .getBytes("utf-8"));
+                os.write("山不在高，有仙则名".getBytes("utf-8"));
             }
 
         } catch (Exception e) {
             // TODO: handle exception
         }
     }
-
-
-
-
-    // 服务端，需要监听客户端的线程类
-    private Handler handler = new Handler() {
-        public void handleMessage(android.os.Message msg) {
-            Toast.makeText(MainActivity.this, String.valueOf(msg.obj),
-                    Toast.LENGTH_SHORT).show();
-            super.handleMessage(msg);
-        }
-    };
 
     @Override
     public void onPointerCaptureChanged(boolean hasCapture) {
@@ -249,7 +246,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     // 读取
                     int count = is.read(buffer);
                     // 如果读取到了，我们就发送刚才的那个Toast
-                    if(count!=0 && count!=-1 ) {
+                    if (count != 0 && count != -1) {
                         Message msg = new Message();
                         msg.obj = new String(buffer, 0, count, "utf-8");
                         handler.sendMessage(msg);
