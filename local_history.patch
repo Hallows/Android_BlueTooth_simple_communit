@@ -1,0 +1,16 @@
+Index: app/src/main/java/com/example/hallows1/assignment_request/MainActivity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/example/hallows1/assignment_request/MainActivity.java	(revision )
++++ app/src/main/java/com/example/hallows1/assignment_request/MainActivity.java	(revision )
+@@ -192,7 +192,7 @@
+             // 如果成功获得输出流
+             if (os != null) {
+                 Toast.makeText(MainActivity.this, "Connection Succeed!", Toast.LENGTH_SHORT).show();
+-                os.write("Test information" .getBytes("utf-8"));
++                os.write("山不在高，有仙则名" .getBytes("utf-8"));
+             }
+ 
+         } catch (Exception e) {
