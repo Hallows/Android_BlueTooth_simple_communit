@@ -9,6 +9,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -28,11 +32,13 @@ import java.util.Set;
 import java.util.UUID;
 
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener, SensorEventListener {
     // UUID.randomUUID()随机获取UUID
     private final UUID MY_UUID = UUID.fromString("db764ac8-4b08-7f25-aafe-59d03c27bae3");
     // 连接对象的名称
     private final String NAME = "LGL";
+    //传感器数据
+    public float senser_value;
     // 本地蓝牙适配器
     private BluetoothAdapter mBluetoothAdapter;
     // 列表
@@ -70,6 +76,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     };
+    //传感器总控实体
+    private SensorManager sManager;
+    //传感器实体
+    private Sensor mSensorOrientation;
+    //发送的数据包
+    private String datasent;
     // 这里本身即是服务端也是客户端，需要如下类
     private BluetoothSocket clientSocket;
     private BluetoothDevice device;
@@ -92,8 +104,22 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        //Initialize the sensor
+        sManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        mSensorOrientation = sManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+        sManager.registerListener(this, mSensorOrientation, SensorManager.SENSOR_DELAY_UI);
         // Initializes Bluetooth adapter
         initView();
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        senser_value = (float) (Math.round(event.values[0] * 100)) / 100;
+
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
 
@@ -201,7 +227,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             // 如果成功获得输出流
             if (os != null) {
                 Toast.makeText(MainActivity.this, "Connection Succeed!", Toast.LENGTH_SHORT).show();
-                os.write("山不在高，有仙则名".getBytes("utf-8"));
+                datasent = String.valueOf(senser_value);
+                os.write(datasent.getBytes("utf-8"));
             }
 
         } catch (Exception e) {
